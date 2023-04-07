@@ -1,10 +1,19 @@
-import React, {useState, useEffect, useRef} from 'react';
-import {View, Alert, Text, TouchableOpacity, Dimensions} from 'react-native';
+import React, {useState, useEffect} from 'react';
+import {
+  View,
+  Alert,
+  Text,
+  TouchableOpacity,
+  Dimensions,
+  Modal,
+  ActivityIndicator,
+} from 'react-native';
 import {MultiSelect, Dropdown} from 'react-native-element-dropdown';
 import base64 from 'react-native-base64';
 import ReactNativeBlobUtil from 'react-native-blob-util';
 import {useFocusEffect} from '@react-navigation/native';
 import {heightPercentageToDP as hp} from 'react-native-responsive-screen';
+import RNFS from 'react-native-fs';
 
 import {NetworkUtils} from '../../../utils';
 
@@ -15,9 +24,6 @@ import moment from 'moment';
 import {API_URL} from '../../../helper/helper';
 
 import {gStyle, colors} from '../../../constants';
-
-import {Touch} from '../../../components';
-import {SingleButtonPopup} from '../../../components';
 
 import styles from '../styles/DownNewDataStyles';
 
@@ -44,23 +50,24 @@ const DownloadNewDataBlock = ({navigation}) => {
   const [selected_afdeling, setSelectedAfdeling] = useState('');
   const [selected, setSelected] = useState([]);
   const [value, setValue] = useState([]);
-  const [selected_capturedDate, setSelectedcapturedDate] = useState('');
 
   var Trees = '';
   const [temp, settemp] = useState(false);
   const [temp2, settemp2] = useState(false);
   const [netInfo, setNetInfo] = useState(false);
 
-  const db = SQLite.openDatabase(
-    {
-      name: 'MainDB',
-      location: 'default',
-    },
-    () => {},
-    error => {
-      console.log(error);
-    },
+  let dbName = 'multispectral.db';
+  let db = SQLite.openDatabase(
+    RNFS.ExternalDirectoryPath + '/' + dbName,
+    '1.0',
+    '',
+    200000,
+    okCallback,
+    errorCallback,
   );
+
+  const okCallback = () => {};
+  const errorCallback = () => {};
 
   useEffect(() => {
     const parentNavigation = navigation.getParent();
@@ -283,6 +290,10 @@ const DownloadNewDataBlock = ({navigation}) => {
     }
   };
 
+  const [visible, setVisible] = useState(false);
+
+  const [progress, setProgress] = useState(0);
+
   const DownloadOffline = async () => {
     try {
       var blockId = '';
@@ -302,6 +313,7 @@ const DownloadNewDataBlock = ({navigation}) => {
       }
       if (dbdata.length == 0 && temp == false) {
         if (Trees == null || Trees == '') {
+          setVisible(true);
           await fetch(`${API_URL}/api/mobile/tree?${blockId}`, {
             method: 'GET',
             headers: {
@@ -319,45 +331,57 @@ const DownloadNewDataBlock = ({navigation}) => {
                   );
                 } else {
                   if (dbdata.length == 0) {
-                    console.log(Trees);
-                    await db.transaction(async tx => {
-                      var date = moment().format('YYYY/MM/DD hh:mm:ss a');
-                      for (let i = 0; i < Trees.length; i++) {
-                        await tx.executeSql(
-                          'INSERT INTO MDB_trees ( treeId, blockId, blockName, latitude, longitude, yearOfPlanting,  predictionId, prediction, droneImageId, verified, compressedImageId, compressedImagePath, nw_latitude, nw_logitude, se_latitude, se_longitude, regionId, regionName, estateGroupId, estateGroupName, estateId, estateName, afdelingId, afdelingName, validated_verificationId, validated_status, createdAt, updatedAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-                          [
-                            Trees[i].treeId,
-                            Trees[i].blockId,
-                            Trees[i].blockName,
-                            Trees[i].latitude,
-                            Trees[i].longitude,
-                            Trees[i].yearOfPlanting,
-                            Trees[i].predictionId,
-                            Trees[i].prediction,
-                            Trees[i].droneImageId,
-                            Trees[i].verified,
-                            Trees[i].compressedImageId,
-                            Trees[i].compressedImagePath,
-                            Trees[i].nw_latitude,
-                            Trees[i].nw_longitude,
-                            Trees[i].se_latitude,
-                            Trees[i].se_longitude,
-                            Trees[i].regionId,
-                            Trees[i].regionName,
-                            Trees[i].estateGroupId,
-                            Trees[i].estateGroupName,
-                            Trees[i].estateId,
-                            Trees[i].estateName,
-                            Trees[i].afdelingId,
-                            Trees[i].afdelingName,
-                            Trees[i].verificationId,
-                            Trees[i].status,
-                            date,
-                            date,
-                          ],
+                    let totalRecords = Trees.length;
+                    var date = moment().format('YYYY/MM/DD hh:mm:ss a');
+                    for (let i = 0; i < Trees.length; i++) {
+                      setTimeout(() => {
+                        db.transaction(
+                          tx => {
+                            tx.executeSql(
+                              'INSERT INTO MDB_trees ( treeId, blockId, blockName, latitude, longitude, yearOfPlanting,  predictionId, prediction, droneImageId, verified, compressedImageId, compressedImagePath, nw_latitude, nw_logitude, se_latitude, se_longitude, regionId, regionName, estateGroupId, estateGroupName, estateId, estateName, afdelingId, afdelingName, validated_verificationId, validated_status, createdAt, updatedAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                              [
+                                Trees[i].treeId,
+                                Trees[i].blockId,
+                                Trees[i].blockName,
+                                Trees[i].latitude,
+                                Trees[i].longitude,
+                                Trees[i].yearOfPlanting,
+                                Trees[i].predictionId,
+                                Trees[i].prediction,
+                                Trees[i].droneImageId,
+                                Trees[i].verified,
+                                Trees[i].compressedImageId,
+                                Trees[i].compressedImagePath,
+                                Trees[i].nw_latitude,
+                                Trees[i].nw_longitude,
+                                Trees[i].se_latitude,
+                                Trees[i].se_longitude,
+                                Trees[i].regionId,
+                                Trees[i].regionName,
+                                Trees[i].estateGroupId,
+                                Trees[i].estateGroupName,
+                                Trees[i].estateId,
+                                Trees[i].estateName,
+                                Trees[i].afdelingId,
+                                Trees[i].afdelingName,
+                                Trees[i].verificationId,
+                                Trees[i].status,
+                                date,
+                                date,
+                              ],
+                            );
+                          },
+                          error => {
+                            console.log(error);
+                          },
+                          () => {
+                            const progress = ((i + 1) / totalRecords) * 100;
+                            setProgress(progress);
+                          },
+                          i * 1000,
                         );
-                      }
-                    });
+                      });
+                    }
                     setmodalVisible(true);
                   }
                 }
@@ -432,7 +456,7 @@ const DownloadNewDataBlock = ({navigation}) => {
                     const compressedImageId =
                       results.rows.item(i)['compressedImageId'];
                     const imagePath = `${
-                      ReactNativeBlobUtil.fs.dirs.DocumentDir
+                      ReactNativeBlobUtil.fs.dirs.SDCardDir
                     }/image${[i]}.webp`;
 
                     ReactNativeBlobUtil.config({
@@ -627,36 +651,13 @@ const DownloadNewDataBlock = ({navigation}) => {
     );
   };
 
-  const onSelectedItemsChange = async test => {
+  const onSelectedItemsChange = test => {
     if (predicted_block != null && predicted_block != '') {
       const newArray = predicted_block.filter(item => test.includes(item.id));
-
       const newArray2 = newArray.map(item => {
         return item.name;
       });
       setValue(newArray2);
-
-      await fetch(
-        `${API_URL}/api/shared/predicted_capturedate?blockId=${test.id}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-        .then(async result => {
-          try {
-            const jsonRes = await result.json();
-            const predicted_capturedate = jsonRes.data;
-            setpredicted_capturedate(predicted_capturedate);
-          } catch (err) {
-            console.log(err);
-          }
-        })
-        .catch(err => {
-          console.log(err);
-        });
     }
   };
 
@@ -667,8 +668,10 @@ const DownloadNewDataBlock = ({navigation}) => {
     settemp2(true);
   };
 
-  DropdownCallback_CapturedDate = async childData => {
-    setSelectedcapturedDate(childData);
+  const hideModal2 = () => {
+    setVisible(false);
+    settemp2(true);
+    setmodalVisible(false);
   };
 
   return (
@@ -683,28 +686,136 @@ const DownloadNewDataBlock = ({navigation}) => {
             marginTop: 10 * ratio,
           },
         ]}>
-        {temp == true ? (
-          <View>
-            <SingleButtonPopup
-              visible={modalVisible}
-              onCancel={hideModal}
-              title="Information.."
-              message={'Data is Downloaded Successfully.'}
-            />
+        <Modal visible={visible} transparent={true} animationType="fade">
+          <View style={styles.downloadcontainer}>
+            <View style={styles.downloadalertBox}>
+              {progress === 100 ? (
+                <View>
+                  <Text style={styles.downloadtitle}>
+                    Download Data Blok Baru
+                  </Text>
+                  <View>
+                    {selected_afdeling != null && selected_afdeling != '' ? (
+                      <View style={styles.innerContainer2}>
+                        <Text
+                          style={{
+                            fontSize: 13 * ratio,
+                            alignSelf: 'flex-start',
+                            color: 'black',
+                          }}>
+                          {`Data berhasil di download untuk\n\nAfdeling ${selected_afdeling.id} :\n\n${value}`}
+                        </Text>
+                        <MaterialCommunityIcons
+                          name="cellphone-arrow-down"
+                          size={65 * ratio}
+                          color={'#10B981'}
+                          style={{left: 10 * ratio}}
+                        />
+                      </View>
+                    ) : null}
+                  </View>
+                  <View style={styles.buttonContainer}>
+                    <TouchableOpacity
+                      style={[
+                        {
+                          backgroundColor: '#009D57',
+                          width: 265 * ratio,
+                          padding: 12 * ratio,
+                          borderRadius: 5 * ratio,
+                          top: 30 * ratio,
+                        },
+                      ]}
+                      onPress={hideModal2}>
+                      <Text style={styles.buttonText}>Kembali</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <>
+                  <Text style={styles.downloadtitle}>
+                    Download Data Blok Baru
+                  </Text>
+                  <View style={styles.innerContainer2}>
+                    <Text style={styles.downloadmessage}>
+                      {'Harap tunggu sementara download\nsedang berlangsung.'}
+                    </Text>
+
+                    <ActivityIndicator
+                      size={52 * ratio}
+                      color={'#009D57'}
+                      style={{left: 20 * ratio}}
+                    />
+                  </View>
+                  <View
+                    style={{
+                      marginBottom: 10 * ratio,
+                    }}>
+                    <Text style={styles.progressmessage}>{`${Math.floor(
+                      progress,
+                    )}%`}</Text>
+                  </View>
+                  <View style={styles.buttonContainer}>
+                    <TouchableOpacity
+                      style={[styles.button, styles.confirmButton]}
+                      disabled={true}>
+                      <Text style={styles.buttonText}>Sila Tunggu</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </View>
           </View>
-        ) : null}
+        </Modal>
 
         {dbdata.length != 0 || temp2 == true ? (
-          <View>
-            <SingleButtonPopup
-              visible={modalVisible}
-              onCancel={hideModal}
-              title="Information.."
-              message={
-                'Data is already downloaded. \nPlease Synchronize first to download the new data. '
-              }
-            />
-          </View>
+          <Modal visible={modalVisible} transparent={true} animationType="fade">
+            <View style={styles.downloadcontainer}>
+              <View style={styles.downloadalertBox}>
+                <View>
+                  <Text style={styles.downloadtitle}>
+                    Download Data Blok Baru
+                  </Text>
+                  <View>
+                    {selected_afdeling != null && selected_afdeling != '' ? (
+                      <View style={styles.innerContainer2}>
+                        <Text
+                          style={{
+                            fontSize: 13 * ratio,
+                            alignSelf: 'flex-start',
+                            color: 'black',
+                          }}>
+                          {`Data sudah didownload. Harap\n\nSinkronkan terlebih dahulu untuk\n\nmendownload data baru.`}
+                        </Text>
+                        <MaterialCommunityIcons
+                          name="cellphone-arrow-down"
+                          size={65 * ratio}
+                          color={'#10B981'}
+                          style={{left: 10 * ratio}}
+                        />
+                      </View>
+                    ) : null}
+                  </View>
+                  <View style={styles.buttonContainer}>
+                    <TouchableOpacity
+                      style={[
+                        {
+                          backgroundColor: '#009D57',
+                          width: 265 * ratio,
+                          padding: 12 * ratio,
+                          borderRadius: 5 * ratio,
+                          top: 30 * ratio,
+                        },
+                      ]}
+                      onPress={hideModal}>
+                      <Text style={styles.buttonText}>
+                        Simpan & Lanjut ke Pokok Berikutnya
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </Modal>
         ) : null}
 
         <View style={styles.innerContainer}>
@@ -833,7 +944,7 @@ const DownloadNewDataBlock = ({navigation}) => {
                 value != null &&
                 value != ''
                   ? value + ','
-                  : 'Select Block'
+                  : 'Select Blok'
               }
               search
               searchPlaceholder="Search..."
@@ -863,61 +974,6 @@ const DownloadNewDataBlock = ({navigation}) => {
               )}
             />
           </View>
-        </View>
-        <View>
-          {selected != null && selected != '' ? (
-            <View style={styles.date_dropdown}>
-              <View style={styles.innerContainer}>
-                <View style={styles.modal_status}>
-                  <Text style={[gStyle.text[theme], styles.text]}>Tanggal</Text>
-                </View>
-                <View style={styles.dropdown_container}>
-                  <Dropdown
-                    style={styles.dropdown}
-                    placeholderStyle={styles.placeholderStyle}
-                    selectedTextStyle={styles.selectedTextStyle}
-                    inputSearchStyle={styles.inputSearchStyle}
-                    iconStyle={styles.iconStyle}
-                    labelField="name"
-                    valueField="id"
-                    data={predicted_capturedate}
-                    placeholder={'Select Date'}
-                    value={selected_capturedDate}
-                    onChange={value => DropdownCallback_CapturedDate(value)}
-                    search
-                    searchPlaceholder="Search..."
-                    activeColor={'#AECA98'}
-                    itemTextStyle={styles.itemTextStyle}
-                  />
-                </View>
-              </View>
-            </View>
-          ) : (
-            <View style={styles.innerContainer}>
-              <View style={styles.modal_status}>
-                <Text style={[gStyle.text[theme], styles.text]}>Tanggal</Text>
-              </View>
-              <View style={styles.dropdown_container}>
-                <Dropdown
-                  style={styles.dropdown}
-                  placeholderStyle={styles.placeholderStyle}
-                  selectedTextStyle={styles.selectedTextStyle}
-                  inputSearchStyle={styles.inputSearchStyle}
-                  iconStyle={styles.iconStyle}
-                  labelField="name"
-                  valueField="id"
-                  data={predicted_capturedate}
-                  placeholder={'Select Date'}
-                  value={selected_capturedDate}
-                  onChange={value => DropdownCallback_CapturedDate(value)}
-                  search
-                  searchPlaceholder="Search..."
-                  activeColor={'#AECA98'}
-                  itemTextStyle={styles.itemTextStyle}
-                />
-              </View>
-            </View>
-          )}
         </View>
       </View>
       <View style={styles.DownloadBtn}>

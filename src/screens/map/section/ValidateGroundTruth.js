@@ -103,16 +103,18 @@ const ValidateGroundTruth = ({navigation, route}) => {
     }
   }, []);
 
-  const db = SQLite.openDatabase(
-    {
-      name: 'MainDB',
-      location: 'default',
-    },
-    () => {},
-    error => {
-      console.log(error);
-    },
+  let dbName = 'multispectral.db';
+  let db = SQLite.openDatabase(
+    RNFS.ExternalDirectoryPath + '/' + dbName,
+    '1.0',
+    '',
+    200000,
+    okCallback,
+    errorCallback,
   );
+
+  const okCallback = () => {};
+  const errorCallback = () => {};
 
   useEffect(() => {
     try {

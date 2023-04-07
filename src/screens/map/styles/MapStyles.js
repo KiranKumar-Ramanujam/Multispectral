@@ -143,6 +143,11 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     borderColor: '#2F80ED',
   },
+
+  circle: {
+    backgroundColor: 'transparent',
+    borderColor: 'transparent',
+  },
 });
 
 export default styles;

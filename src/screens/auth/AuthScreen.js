@@ -14,6 +14,7 @@ import {
 import {useDispatch} from 'react-redux';
 import {getLoginData} from '../../redux/actions/logindetail.action';
 import {CommonActions} from '@react-navigation/native';
+import RNFS from 'react-native-fs';
 
 import {NetworkUtils} from '../../utils';
 
@@ -49,16 +50,18 @@ const AuthScreen = ({navigation}) => {
 
   const dispatch = useDispatch();
 
-  const db = SQLite.openDatabase(
-    {
-      name: 'MainDB',
-      location: 'default',
-    },
-    () => {},
-    error => {
-      console.log(error);
-    },
+  let dbName = 'multispectral.db';
+  let db = SQLite.openDatabase(
+    RNFS.ExternalDirectoryPath + '/' + dbName,
+    '1.0',
+    '',
+    200000,
+    okCallback,
+    errorCallback,
   );
+
+  const okCallback = () => {};
+  const errorCallback = () => {};
 
   useEffect(() => {
     (async () => {

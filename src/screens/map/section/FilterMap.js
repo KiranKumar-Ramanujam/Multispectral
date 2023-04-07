@@ -2,6 +2,7 @@ import React, {useState, useEffect} from 'react';
 import {View, Text, Switch, Dimensions, TouchableOpacity} from 'react-native';
 import {useSelector, useDispatch} from 'react-redux';
 import {useFocusEffect} from '@react-navigation/native';
+import RNFS from 'react-native-fs';
 
 import SQLite from 'react-native-sqlite-storage';
 
@@ -134,16 +135,18 @@ const FilterMap = ({navigation}) => {
     block_label,
   } = useSelector(state => state.dropdownset_reducer);
 
-  const db = SQLite.openDatabase(
-    {
-      name: 'MainDB',
-      location: 'default',
-    },
-    () => {},
-    error => {
-      console.log(error);
-    },
+  let dbName = 'multispectral.db';
+  let db = SQLite.openDatabase(
+    RNFS.ExternalDirectoryPath + '/' + dbName,
+    '1.0',
+    '',
+    200000,
+    okCallback,
+    errorCallback,
   );
+
+  const okCallback = () => {};
+  const errorCallback = () => {};
 
   const [selected_region, setSelectedRegion] = useState(region_label);
   const [selected_estate_group, setSelectedEstateGroup] =

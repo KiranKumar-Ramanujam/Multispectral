@@ -1,4 +1,5 @@
 import {types} from '../../constants/reduxtypes.constant';
+import RNFS from 'react-native-fs';
 
 import SQLite from 'react-native-sqlite-storage';
 
@@ -6,16 +7,18 @@ const initialState = {
   Trees_Test: [],
 };
 
-const db = SQLite.openDatabase(
-  {
-    name: 'MainDB',
-    location: 'default',
-  },
-  () => {},
-  error => {
-    console.log(error);
-  },
+let dbName = 'multispectral.db';
+let db = SQLite.openDatabase(
+  RNFS.ExternalDirectoryPath + '/' + dbName,
+  '1.0',
+  '',
+  200000,
+  okCallback,
+  errorCallback,
 );
+
+const okCallback = () => {};
+const errorCallback = () => {};
 
 function tree_reducer(state = initialState, action) {
   switch (action.type) {

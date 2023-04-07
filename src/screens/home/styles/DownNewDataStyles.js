@@ -151,6 +151,63 @@ const styles = StyleSheet.create({
   date_dropdown_bubble: {
     marginTop: 5,
   },
+
+  downloadcontainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  downloadalertBox: {
+    backgroundColor: '#fff',
+    width: 290 * ratio,
+    height: 215 * ratio,
+    padding: 13 * ratio,
+    borderRadius: 7 * ratio,
+  },
+  downloadtitle: {
+    fontSize: 15 * ratio,
+    fontWeight: 'bold',
+    color: 'black',
+    alignSelf: 'flex-start',
+    marginBottom: 10 * ratio,
+  },
+  downloadmessage: {
+    fontSize: 11 * ratio,
+    alignSelf: 'flex-start',
+    color: 'black',
+  },
+  progressmessage: {
+    fontSize: 30 * ratio,
+    color: '#009D57',
+    fontWeight: 'bold',
+    marginLeft: 10 * ratio,
+    marginTop: -10 * ratio,
+  },
+  innerContainer2: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+  },
+
+  buttonContainer: {
+    alignItems: 'center',
+  },
+
+  button: {
+    padding: 12 * ratio,
+    borderRadius: 5 * ratio,
+    top: 15 * ratio,
+  },
+  confirmButton: {
+    backgroundColor: '#80CEAB',
+    width: 265 * ratio,
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    alignSelf: 'center',
+    fontSize: 14 * ratio,
+  },
 });
 
 export default styles;

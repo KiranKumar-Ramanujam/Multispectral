@@ -43,16 +43,18 @@ const ExpandableComponent = ({item, onClickFunction}) => {
     }
   }, [item.isExpanded]);
 
-  const db = SQLite.openDatabase(
-    {
-      name: 'MainDB',
-      location: 'default',
-    },
-    () => {},
-    error => {
-      console.log(error);
-    },
+  let dbName = 'multispectral.db';
+  let db = SQLite.openDatabase(
+    RNFS.ExternalDirectoryPath + '/' + dbName,
+    '1.0',
+    '',
+    200000,
+    okCallback,
+    errorCallback,
   );
+
+  const okCallback = () => {};
+  const errorCallback = () => {};
 
   const handleDeleteBlock = () => {
     setIsAlertVisible(true);
@@ -377,16 +379,18 @@ const Stats = () => {
     });
   }, []);
 
-  const db = SQLite.openDatabase(
-    {
-      name: 'MainDB',
-      location: 'default',
-    },
-    () => {},
-    error => {
-      console.log(error);
-    },
+  let dbName = 'multispectral.db';
+  let db = SQLite.openDatabase(
+    RNFS.ExternalDirectoryPath + '/' + dbName,
+    '1.0',
+    '',
+    200000,
+    okCallback,
+    errorCallback,
   );
+
+  const okCallback = () => {};
+  const errorCallback = () => {};
 
   let content = [];
 

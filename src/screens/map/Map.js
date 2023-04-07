@@ -1,5 +1,10 @@
 import React, {useState, useRef, useEffect, useCallback} from 'react';
-import MapView, {Marker, PROVIDER_GOOGLE, Overlay} from 'react-native-maps';
+import MapView, {
+  Marker,
+  PROVIDER_GOOGLE,
+  Circle,
+  Overlay,
+} from 'react-native-maps';
 import {
   View,
   Modal,
@@ -11,12 +16,13 @@ import {
 import {useSelector, useDispatch} from 'react-redux';
 import {useFocusEffect} from '@react-navigation/native';
 import Geolocation from '@react-native-community/geolocation';
+import RNFS from 'react-native-fs';
 
 import SQLite from 'react-native-sqlite-storage';
 
 import {colors, gStyle} from '../../constants';
 
-import {AntDesignIcon, Circles, Svg_Filter} from '../../icons/Icons';
+import {AntDesignIcon, Svg_Filter} from '../../icons/Icons';
 
 import styles from './styles/MapStyles';
 
@@ -74,16 +80,18 @@ const Map = ({navigation, route}) => {
     state => state.switchtoggle_reducer,
   );
 
-  const db = SQLite.openDatabase(
-    {
-      name: 'MainDB',
-      location: 'default',
-    },
-    () => {},
-    error => {
-      console.log(error);
-    },
+  let dbName = 'multispectral.db';
+  let db = SQLite.openDatabase(
+    RNFS.ExternalDirectoryPath + '/' + dbName,
+    '1.0',
+    '',
+    200000,
+    okCallback,
+    errorCallback,
   );
+
+  const okCallback = () => {};
+  const errorCallback = () => {};
 
   useEffect(() => {
     try {
@@ -342,35 +350,43 @@ const Map = ({navigation, route}) => {
             pillColor2 = colors.switch_icongreen;
             markerColor = colors.marker_green;
             return (
-              <Marker
-                key={item.treeId}
-                coordinate={{
-                  latitude: item.latitude !== null ? item.latitude : 0,
-                  longitude: item.longitude !== null ? item.longitude : 0,
-                }}
-                onPress={() => {
-                  setActiveMarkers(true);
-                  setselectedTreeData(item);
-                  setModalVisible(true);
-                  onPressMarker(item);
-                }}>
+              <View key={item.treeId}>
+                <Marker
+                  coordinate={{
+                    latitude: parseFloat(item.latitude),
+                    longitude: parseFloat(item.longitude),
+                  }}
+                  onPress={() => {
+                    setActiveMarkers(true);
+                    setselectedTreeData(item);
+                    setModalVisible(true);
+                    onPressMarker(item);
+                  }}>
+                  <View style={styles.circle} />
+
+                  {activeMarkers == true &&
+                  selectedTreeData.treeId == item.treeId ? (
+                    <Svg_Filter
+                      viewBox={'0 0 70 70'}
+                      color={colors.marker_green}
+                    />
+                  ) : null}
+                </Marker>
                 {activeMarkers == true &&
-                selectedTreeData.treeId == item.treeId ? (
-                  <Svg_Filter
-                    viewBox={'0 0 70 70'}
-                    color={colors.marker_green}
-                  />
-                ) : (
-                  <Circles
-                    cx={'15'}
-                    cy={'15'}
-                    r={10}
-                    fill={'transparent'}
-                    stroke={colors.marker_green}
-                    strokeWidth="2.5"
+                selectedTreeData.treeId == item.treeId ? null : (
+                  <Circle
+                    center={{
+                      latitude: parseFloat(item.latitude),
+                      longitude: parseFloat(item.longitude),
+                    }}
+                    radius={5}
+                    zIndex={3}
+                    strokeColor={colors.marker_green}
+                    strokeWidth={2}
+                    fillColor="transparent"
                   />
                 )}
-              </Marker>
+              </View>
             );
           } else if (
             item.prediction == 'unhealthy' &&
@@ -382,32 +398,43 @@ const Map = ({navigation, route}) => {
             markerColor = colors.marker_red;
 
             return (
-              <Marker
-                key={item.treeId}
-                coordinate={{
-                  latitude: item.latitude !== null ? item.latitude : 0,
-                  longitude: item.longitude !== null ? item.longitude : 0,
-                }}
-                onPress={() => {
-                  setActiveMarkers(true);
-                  setselectedTreeData(item);
-                  setModalVisible(true);
-                  onPressMarker(item);
-                }}>
+              <View key={item.treeId}>
+                <Marker
+                  coordinate={{
+                    latitude: parseFloat(item.latitude),
+                    longitude: parseFloat(item.longitude),
+                  }}
+                  onPress={() => {
+                    setActiveMarkers(true);
+                    setselectedTreeData(item);
+                    setModalVisible(true);
+                    onPressMarker(item);
+                  }}>
+                  <View style={styles.circle} />
+
+                  {activeMarkers == true &&
+                  selectedTreeData.treeId == item.treeId ? (
+                    <Svg_Filter
+                      viewBox={'0 0 70 70'}
+                      color={colors.marker_red}
+                    />
+                  ) : null}
+                </Marker>
                 {activeMarkers == true &&
-                selectedTreeData.treeId == item.treeId ? (
-                  <Svg_Filter viewBox={'0 0 70 70'} color={colors.marker_red} />
-                ) : (
-                  <Circles
-                    cx={'15'}
-                    cy={'15'}
-                    r={10}
-                    fill={'transparent'}
-                    stroke={colors.marker_red}
-                    strokeWidth="2.5"
+                selectedTreeData.treeId == item.treeId ? null : (
+                  <Circle
+                    center={{
+                      latitude: parseFloat(item.latitude),
+                      longitude: parseFloat(item.longitude),
+                    }}
+                    radius={5}
+                    zIndex={3}
+                    strokeColor={colors.marker_red}
+                    strokeWidth={2}
+                    fillColor="transparent"
                   />
                 )}
-              </Marker>
+              </View>
             );
           } else if (
             item.status == 'Healthy' ||
@@ -420,35 +447,43 @@ const Map = ({navigation, route}) => {
             markerColor = colors.marker_blue;
 
             return (
-              <Marker
-                key={item.treeId}
-                coordinate={{
-                  latitude: item.latitude !== null ? item.latitude : 0,
-                  longitude: item.longitude !== null ? item.longitude : 0,
-                }}
-                onPress={() => {
-                  setActiveMarkers(true);
-                  setselectedTreeData(item);
-                  setModalVisible(true);
-                  onPressMarker(item);
-                }}>
+              <View key={item.treeId}>
+                <Marker
+                  coordinate={{
+                    latitude: parseFloat(item.latitude),
+                    longitude: parseFloat(item.longitude),
+                  }}
+                  onPress={() => {
+                    setActiveMarkers(true);
+                    setselectedTreeData(item);
+                    setModalVisible(true);
+                    onPressMarker(item);
+                  }}>
+                  <View style={styles.circle} />
+
+                  {activeMarkers == true &&
+                  selectedTreeData.treeId == item.treeId ? (
+                    <Svg_Filter
+                      viewBox={'0 0 70 70'}
+                      color={colors.switch_iconblue}
+                    />
+                  ) : null}
+                </Marker>
                 {activeMarkers == true &&
-                selectedTreeData.treeId == item.treeId ? (
-                  <Svg_Filter
-                    viewBox={'0 0 70 70'}
-                    color={colors.switch_iconblue}
-                  />
-                ) : (
-                  <Circles
-                    cx={'15'}
-                    cy={'15'}
-                    r={10}
-                    fill={'transparent'}
-                    stroke={colors.marker_blue}
-                    strokeWidth="2.5"
+                selectedTreeData.treeId == item.treeId ? null : (
+                  <Circle
+                    center={{
+                      latitude: parseFloat(item.latitude),
+                      longitude: parseFloat(item.longitude),
+                    }}
+                    radius={5}
+                    zIndex={3}
+                    strokeColor={colors.switch_iconblue}
+                    strokeWidth={2}
+                    fillColor="transparent"
                   />
                 )}
-              </Marker>
+              </View>
             );
           }
         })}

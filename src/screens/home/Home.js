@@ -50,16 +50,18 @@ const Home = ({navigation}) => {
     }, []),
   );
 
-  const db = SQLite.openDatabase(
-    {
-      name: 'MainDB',
-      location: 'default',
-    },
-    () => {},
-    error => {
-      console.log(error);
-    },
+  let dbName = 'multispectral.db';
+  let db = SQLite.openDatabase(
+    RNFS.ExternalDirectoryPath + '/' + dbName,
+    '1.0',
+    '',
+    200000,
+    okCallback,
+    errorCallback,
   );
+
+  const okCallback = () => {};
+  const errorCallback = () => {};
 
   const getuploadData = () => {
     try {
@@ -152,11 +154,8 @@ const Home = ({navigation}) => {
   };
 
   const synchronize = async () => {
-    Alert.alert('Warning! 1', JSON.stringify(PostData));
     if (PostData != null && PostData != '') {
-      Alert.alert('Warning! 2', JSON.stringify(PostData));
       await SendData(PostData);
-
       db.transaction(tx => {
         tx.executeSql(
           'SELECT DISTINCT(compressedImagePath) FROM MDB_trees',
@@ -217,7 +216,6 @@ const Home = ({navigation}) => {
 
   const SendData = async PostData => {
     try {
-      Alert.alert('Warning 3!', JSON.stringify(PostData));
       await fetch(`${API_URL}/mobile/sync`, {
         method: 'POST',
         headers: {
@@ -302,7 +300,7 @@ const Home = ({navigation}) => {
               fontWeight: '500',
               color: '#FCFCFC',
             }}>
-            Download New Untuk Blok Baru
+            Download Data Untuk Blok Baru
           </Text>
         </TouchableOpacity>
       </View>
