@@ -71,7 +71,6 @@ const ProfileScreen = ({navigation}) => {
               .charAt(0)
               .toUpperCase()}${userName.slice(1)}`}</Text>
             <Text style={styles.userTag}>{`UserId : ${userId}`}</Text>
-            <Text style={styles.userTag}>{`FullName : ${userId}`}</Text>
           </View>
         </View>
         <TouchableOpacity style={styles.hapusStyle} onPress={handleLogout}>

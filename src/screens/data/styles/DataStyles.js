@@ -10,6 +10,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
+  /******************** Alignment ************/
   innerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -19,6 +20,7 @@ const styles = StyleSheet.create({
     marginBottom: 10 * ratio,
     marginTop: 20 * ratio,
   },
+  /****************** dropdown************ */
   dropdown_container: {
     position: 'absolute',
     height: 50 * ratio,
@@ -35,6 +37,7 @@ const styles = StyleSheet.create({
   textallign: {
     marginLeft: 15 * ratio,
   },
+  /**************************** */
   titleText: {
     flex: 1,
     fontSize: 22 * ratio,
@@ -65,12 +68,11 @@ const styles = StyleSheet.create({
     fontSize: 16 * ratio,
     color: colors.white,
     padding: 14 * ratio,
-    fontWeight: '500',
+    fontWeight: 'bold',
   },
   Subheader: {
-    backgroundColor: '#006400',
-    padding: 1,
-    borderWidth: 0,
+    top: 20 * ratio,
+    backgroundColor: '#35795B',
   },
   content: {
     paddingLeft: 10 * ratio,
@@ -78,7 +80,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   deletebutton: {
-    marginLeft: 266 * ratio,
+    marginLeft: 259 * ratio,
   },
   touchableopacity: {
     flexDirection: 'row',

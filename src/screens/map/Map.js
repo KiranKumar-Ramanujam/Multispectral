@@ -12,6 +12,7 @@ import {
   PermissionsAndroid,
   Pressable,
   Dimensions,
+  Alert,
 } from 'react-native';
 import {useSelector, useDispatch} from 'react-redux';
 import {useFocusEffect} from '@react-navigation/native';
@@ -32,24 +33,26 @@ import Route from '../../constants/route.constant';
 const Map = ({navigation, route}) => {
   const {width, height} = Dimensions.get('window');
   const ratio = Math.min(width, height) / 375;
-  const {Trees_Test} = useSelector(state => state.tree_reducer);
   const [OverlayImage, setOverlayImage] = useState([]);
   const [selectedRegion, setSelectedRegion] = useState(null);
   const selected_block = route.params;
+  const [Data, setData] = useState([]);
+  const [Block, setBlock] = useState(selected_block);
 
-  useEffect(() => {
-    const parentNavigation = navigation.getParent();
-    if (parentNavigation) {
-      parentNavigation.setOptions({
-        tabBarStyle: {
-          height: 70 * ratio,
-        },
-      });
-    }
-  }, [navigation]);
+  // useEffect(() => {
+  //   const parentNavigation = navigation.getParent();
+  //   if (parentNavigation) {
+  //     parentNavigation.setOptions({
+  //       tabBarStyle: {
+  //         height: 70 * ratio,
+  //       },
+  //     });
+  //   }
+  // }, [navigation]);
 
   useEffect(() => {
     if (selected_block != null && selected_block != '') {
+      setBlock(selected_block);
       if (
         selected_block.selected_block != null &&
         selected_block.selected_block != ''
@@ -74,8 +77,6 @@ const Map = ({navigation, route}) => {
     }
   }, [selected_block]);
 
-  const dispatch = useDispatch();
-
   const {green_isActive, red_isActive, blue_isActive} = useSelector(
     state => state.switchtoggle_reducer,
   );
@@ -96,7 +97,6 @@ const Map = ({navigation, route}) => {
   useEffect(() => {
     try {
       getpest_diseases();
-      dispatch(getTreesAction());
     } catch (error) {
       console.log(error);
     }
@@ -104,19 +104,67 @@ const Map = ({navigation, route}) => {
 
   useFocusEffect(
     React.useCallback(() => {
+      getData2();
+      async function getData2() {
+        const trees = [];
+        await db.transaction(tx => {
+          tx.executeSql(
+            // 'SELECT l.treeId,l.blockId,l.blockName,l.latitude,l.longitude,l.yearOfPlanting,l.predictionId, l.droneImageId, l.compressedImagePath, l.nw_latitude, l.nw_logitude, l.se_latitude, l.se_longitude, l.prediction, l.afdelingId, l.afdelingName, l.estateId, l.estateName, l.estateGroupId, l.regionId, l.validated_verificationId, l.validated_status, max(r.verificationId),r.userId,r.status, r.remarks, v.verificationImageId, v.uploadPath FROM MDB_trees l LEFT JOIN MDB_manual_verification r ON l.predictionId = r.predictionId LEFT JOIN MDB_verification_image v ON v.verificationId = r.verificationId GROUP BY l.treeId',
+            `SELECT l.treeId,l.blockId,l.blockName,l.latitude,l.longitude,l.yearOfPlanting,l.predictionId, l.droneImageId, l.compressedImagePath, l.nw_latitude, l.nw_logitude, l.se_latitude, l.se_longitude, l.prediction, l.afdelingId, l.afdelingName, l.estateId, l.estateName, l.estateGroupId, l.regionId, l.validated_verificationId, l.validated_status, l.validated_remarks, l.validated_pestDiseaseId, max(r.verificationId),r.userId,r.status, p.pestDiseaseId, r.remarks, v.verificationImageId, v.uploadPath FROM MDB_trees l LEFT JOIN MDB_manual_verification r ON l.predictionId = r.predictionId LEFT JOIN MDB_verification_image v ON v.verificationId = r.verificationId LEFT JOIN MDB_manualverification_pest_disease p ON p.verificationId = r.verificationId WHERE l.blockId = ? GROUP BY l.treeId`,
+            [selected_block.selected_block[0].blockId],
+            [Block.selected_block[0].blockId],
+            (tx, results) => {
+              var len = results.rows.length;
+              if (len > 0) {
+                for (let i = 0; i < results.rows.length; ++i) {
+                  trees.push(results.rows.item(i));
+                }
+                setData(trees);
+              }
+            },
+          );
+        });
+
+        await db.transaction(tx => {
+          tx.executeSql(
+            'SELECT DISTINCT(compressedImageId), nw_latitude, nw_logitude, se_latitude, se_longitude, compressedImagePath from MDB_trees WHERE blockId = ?',
+            // [selected_block.selected_block[0].blockId],
+            [Block.selected_block[0].blockId],
+            (tx, results) => {
+              var temp = [];
+              var len = results.rows.length;
+
+              if (len > 0) {
+                for (let i = 0; i < results.rows.length; ++i) {
+                  temp.push(results.rows.item(i));
+                }
+                setOverlayImage(temp);
+              }
+            },
+          );
+        });
+      }
+
       db.transaction(tx => {
         tx.executeSql('SELECT * from MDB_trees', [], (tx, results) => {
           var temp = [];
           var len = results.rows.length;
           if (len > 0) {
             getpest_diseases();
-            dispatch(getTreesAction());
           } else {
-            dispatch(getTreesAction());
             setOverlayImage(null);
           }
         });
       });
+
+      const parentNavigation = navigation.getParent();
+      if (parentNavigation) {
+        parentNavigation.setOptions({
+          tabBarStyle: {
+            height: 70 * ratio,
+          },
+        });
+      }
     }, []),
   );
 
@@ -203,21 +251,23 @@ const Map = ({navigation, route}) => {
           },
         );
 
-        tx.executeSql(
-          'SELECT DISTINCT(compressedImageId), nw_latitude, nw_logitude, se_latitude, se_longitude, compressedImagePath from MDB_trees',
-          [],
-          (tx, results) => {
-            var temp = [];
-            var len = results.rows.length;
+        // tx.executeSql(
+        //   // 'SELECT DISTINCT(compressedImageId), nw_latitude, nw_logitude, se_latitude, se_longitude, compressedImagePath from MDB_trees',
+        //   'SELECT DISTINCT(compressedImageId), nw_latitude, nw_logitude, se_latitude, se_longitude, compressedImagePath from MDB_trees WHERE blockId = ?',
+        //   [selected_block.selected_block[0].blockId],
+        //   (tx, results) => {
+        //     var temp = [];
+        //     var len = results.rows.length;
 
-            if (len > 0) {
-              for (let i = 0; i < results.rows.length; ++i) {
-                temp.push(results.rows.item(i));
-                setOverlayImage(temp);
-              }
-            }
-          },
-        );
+        //     if (len > 0) {
+        //       for (let i = 0; i < results.rows.length; ++i) {
+        //         temp.push(results.rows.item(i));
+        //       }
+        //       Alert.alert('Information! 262', JSON.stringify(temp));
+        //       setOverlayImage(temp);
+        //     }
+        //   },
+        // );
       });
     } catch (error) {
       console.log(error);
@@ -300,6 +350,7 @@ const Map = ({navigation, route}) => {
         style={styles.mapStyle}
         provider={PROVIDER_GOOGLE}
         zoomEnabled={true}
+        showsUserLocation={true}
         minZoomLevel={18.5}
         maxZoomLevel={20}
         mapType={'none'}
@@ -340,153 +391,120 @@ const Map = ({navigation, route}) => {
           </View>
         ) : null}
 
-        {Trees_Test.map((item, index) => {
-          if (
-            item.prediction == 'healthy' &&
-            green_isActive == true &&
-            item.status == null &&
-            (item.validated_status == null || item.validated_status == '')
-          ) {
-            pillColor2 = colors.switch_icongreen;
-            markerColor = colors.marker_green;
-            return (
-              <View key={item.treeId}>
-                <Marker
-                  coordinate={{
-                    latitude: parseFloat(item.latitude),
-                    longitude: parseFloat(item.longitude),
-                  }}
-                  onPress={() => {
-                    setActiveMarkers(true);
-                    setselectedTreeData(item);
-                    setModalVisible(true);
-                    onPressMarker(item);
-                  }}>
-                  <View style={styles.circle} />
-
-                  {activeMarkers == true &&
-                  selectedTreeData.treeId == item.treeId ? (
-                    <Svg_Filter
-                      viewBox={'0 0 70 70'}
-                      color={colors.marker_green}
-                    />
+        {/* {Trees_Test.map((item, index) => { */}
+        {Data != null && Data != '' ? (
+          <View>
+            {Data.map((item, index) => {
+              return (
+                <View key={item.treeId}>
+                  {item.prediction == 'healthy' &&
+                  green_isActive == true &&
+                  item.status == null &&
+                  (item.validated_status == null ||
+                    item.validated_status == '') ? (
+                    <View>
+                      <Marker
+                        key={item.treeId}
+                        coordinate={{
+                          latitude: parseFloat(item.latitude),
+                          longitude: parseFloat(item.longitude),
+                        }}
+                        opacity={0}
+                        onPress={() => {
+                          setActiveMarkers(true);
+                          setselectedTreeData(item);
+                          setModalVisible(true);
+                          onPressMarker(item);
+                        }}></Marker>
+                      <Circle
+                        center={{
+                          latitude: parseFloat(item.latitude),
+                          longitude: parseFloat(item.longitude),
+                        }}
+                        radius={5}
+                        strokeColor={colors.marker_green}
+                        fillColor={
+                          activeMarkers == true &&
+                          selectedTreeData.treeId == item.treeId
+                            ? colors.marker_green
+                            : 'transparent'
+                        }
+                        zIndex={3}></Circle>
+                    </View>
+                  ) : item.prediction == 'unhealthy' &&
+                    red_isActive == true &&
+                    item.status == null &&
+                    (item.validated_status == null ||
+                      item.validated_status == '') ? (
+                    <View>
+                      <Marker
+                        key={item.treeId}
+                        coordinate={{
+                          latitude: parseFloat(item.latitude),
+                          longitude: parseFloat(item.longitude),
+                        }}
+                        opacity={0}
+                        onPress={() => {
+                          setActiveMarkers(true);
+                          setselectedTreeData(item);
+                          setModalVisible(true);
+                          onPressMarker(item);
+                        }}></Marker>
+                      <Circle
+                        center={{
+                          latitude: parseFloat(item.latitude),
+                          longitude: parseFloat(item.longitude),
+                        }}
+                        radius={5}
+                        strokeColor={colors.marker_red}
+                        fillColor={
+                          activeMarkers == true &&
+                          selectedTreeData.treeId == item.treeId
+                            ? colors.marker_red
+                            : 'transparent'
+                        }
+                        zIndex={3}></Circle>
+                    </View>
+                  ) : (item.status == 'Healthy' && blue_isActive == true) ||
+                    (item.status == 'Unhealthy' && blue_isActive == true) ||
+                    (item.validated_status != null &&
+                      item.validated_status != '' &&
+                      blue_isActive == true) ? (
+                    <View>
+                      <Marker
+                        key={item.treeId}
+                        coordinate={{
+                          latitude: parseFloat(item.latitude),
+                          longitude: parseFloat(item.longitude),
+                        }}
+                        opacity={0}
+                        onPress={() => {
+                          setActiveMarkers(true);
+                          setselectedTreeData(item);
+                          setModalVisible(true);
+                          onPressMarker(item);
+                        }}></Marker>
+                      <Circle
+                        center={{
+                          latitude: parseFloat(item.latitude),
+                          longitude: parseFloat(item.longitude),
+                        }}
+                        radius={5}
+                        strokeColor={colors.marker_blue}
+                        fillColor={
+                          activeMarkers == true &&
+                          selectedTreeData.treeId == item.treeId
+                            ? colors.marker_blue
+                            : 'transparent'
+                        }
+                        zIndex={3}></Circle>
+                    </View>
                   ) : null}
-                </Marker>
-                {activeMarkers == true &&
-                selectedTreeData.treeId == item.treeId ? null : (
-                  <Circle
-                    center={{
-                      latitude: parseFloat(item.latitude),
-                      longitude: parseFloat(item.longitude),
-                    }}
-                    radius={5}
-                    zIndex={3}
-                    strokeColor={colors.marker_green}
-                    strokeWidth={2}
-                    fillColor="transparent"
-                  />
-                )}
-              </View>
-            );
-          } else if (
-            item.prediction == 'unhealthy' &&
-            red_isActive == true &&
-            item.status == null &&
-            (item.validated_status == null || item.validated_status == '')
-          ) {
-            pillColor2 = colors.switch_iconred;
-            markerColor = colors.marker_red;
-
-            return (
-              <View key={item.treeId}>
-                <Marker
-                  coordinate={{
-                    latitude: parseFloat(item.latitude),
-                    longitude: parseFloat(item.longitude),
-                  }}
-                  onPress={() => {
-                    setActiveMarkers(true);
-                    setselectedTreeData(item);
-                    setModalVisible(true);
-                    onPressMarker(item);
-                  }}>
-                  <View style={styles.circle} />
-
-                  {activeMarkers == true &&
-                  selectedTreeData.treeId == item.treeId ? (
-                    <Svg_Filter
-                      viewBox={'0 0 70 70'}
-                      color={colors.marker_red}
-                    />
-                  ) : null}
-                </Marker>
-                {activeMarkers == true &&
-                selectedTreeData.treeId == item.treeId ? null : (
-                  <Circle
-                    center={{
-                      latitude: parseFloat(item.latitude),
-                      longitude: parseFloat(item.longitude),
-                    }}
-                    radius={5}
-                    zIndex={3}
-                    strokeColor={colors.marker_red}
-                    strokeWidth={2}
-                    fillColor="transparent"
-                  />
-                )}
-              </View>
-            );
-          } else if (
-            item.status == 'Healthy' ||
-            item.status == 'Unhealthy' ||
-            (item.validated_status != null &&
-              item.validated_status != '' &&
-              blue_isActive == true)
-          ) {
-            pillColor2 = colors.switch_iconblue;
-            markerColor = colors.marker_blue;
-
-            return (
-              <View key={item.treeId}>
-                <Marker
-                  coordinate={{
-                    latitude: parseFloat(item.latitude),
-                    longitude: parseFloat(item.longitude),
-                  }}
-                  onPress={() => {
-                    setActiveMarkers(true);
-                    setselectedTreeData(item);
-                    setModalVisible(true);
-                    onPressMarker(item);
-                  }}>
-                  <View style={styles.circle} />
-
-                  {activeMarkers == true &&
-                  selectedTreeData.treeId == item.treeId ? (
-                    <Svg_Filter
-                      viewBox={'0 0 70 70'}
-                      color={colors.switch_iconblue}
-                    />
-                  ) : null}
-                </Marker>
-                {activeMarkers == true &&
-                selectedTreeData.treeId == item.treeId ? null : (
-                  <Circle
-                    center={{
-                      latitude: parseFloat(item.latitude),
-                      longitude: parseFloat(item.longitude),
-                    }}
-                    radius={5}
-                    zIndex={3}
-                    strokeColor={colors.switch_iconblue}
-                    strokeWidth={2}
-                    fillColor="transparent"
-                  />
-                )}
-              </View>
-            );
-          }
-        })}
+                </View>
+              );
+            })}
+          </View>
+        ) : null}
       </MapView>
       {selectedTreeData != null && selectedTreeData != '' ? (
         <Modal
@@ -628,9 +646,31 @@ const Map = ({navigation, route}) => {
             </View>
             {selectedTreeData.validated_status != null &&
             selectedTreeData.validated_status != '' ? (
-              <View style={styles.validated_popRectangleShape}>
-                <Text style={[styles.validated_status_text]}>VERIFIED</Text>
-              </View>
+              // <View style={styles.validated_popRectangleShape}>
+              //   <Text style={[styles.validated_status_text]}>VERIFIED</Text>
+              // </View>
+              <Pressable
+                style={[
+                  styles.popvalidatebutton,
+                  styles.popvalidatebutton_background,
+                ]}
+                onPress={() => {
+                  setModalVisible(!modalVisible);
+                  setActiveMarkers(false);
+                  navigation.navigate(Route.VALIDATEGROUNDTRUTH, {
+                    validate_selectedTreeData: selectedTreeData,
+                    predicted_pillColor: pillColor,
+                    validated_pillColor: validation_color,
+                    pestdisease: pestdisease,
+                    user_latitude: currentLatitude,
+                    user_longitude: currentLongitude,
+                    user_accuracy: accuracy,
+                  });
+                }}>
+                <Text style={styles.popvalidatebuttontext}>
+                  Validate Ground Truth Again
+                </Text>
+              </Pressable>
             ) : (
               <Pressable
                 style={[

@@ -40,15 +40,15 @@ const FilterMap = ({navigation}) => {
         },
       });
     }
-    return () => {
-      if (parentNavigation) {
-        parentNavigation.setOptions({
-          tabBarStyle: {
-            height: 70 * ratio,
-          },
-        });
-      }
-    };
+    // return () => {
+    //   if (parentNavigation) {
+    //     parentNavigation.setOptions({
+    //       tabBarStyle: {
+    //         height: 70 * ratio,
+    //       },
+    //     });
+    //   }
+    // };
   }, [navigation]);
 
   useFocusEffect(
@@ -123,6 +123,19 @@ const FilterMap = ({navigation}) => {
             }
           },
         );
+        tx.executeSql(
+          'SELECT blockId, se_latitude , se_longitude,nw_latitude,  nw_logitude from MDB_trees where blockId = ? LIMIT 1',
+          [block_label.blockId],
+          (tx, results) => {
+            var temp = [];
+            var len = results.rows.length;
+            if (len > 0) {
+              for (let i = 0; i < results.rows.length; ++i)
+                temp.push(results.rows.item(i));
+              setSelectedBlock_2(temp);
+            }
+          },
+        );
       });
     }, []),
   );
@@ -171,7 +184,8 @@ const FilterMap = ({navigation}) => {
       setSelectedBlock(childData);
       db.transaction(tx => {
         tx.executeSql(
-          'SELECT se_latitude , se_longitude,nw_latitude,  nw_logitude from MDB_trees where blockId = ? LIMIT 1',
+          // 'SELECT se_latitude , se_longitude,nw_latitude,  nw_logitude from MDB_trees where blockId = ? LIMIT 1',
+          'SELECT blockId, se_latitude , se_longitude,nw_latitude,  nw_logitude from MDB_trees where blockId = ? LIMIT 1',
           [childData.blockId],
           (tx, results) => {
             var temp = [];
@@ -411,7 +425,7 @@ const FilterMap = ({navigation}) => {
             <ModalDropdown
               data={Region}
               disabled={true}
-              placeholder={'Select Region'}
+              placeholder={'No Data'}
               selecteditem_callback={DropdownCallback_Region}
               options={options_region}
               item={'regionName'}
@@ -450,7 +464,7 @@ const FilterMap = ({navigation}) => {
             <ModalDropdown
               data={EstateGroup}
               disabled={true}
-              placeholder={'Select Estate Group'}
+              placeholder={'No Data'}
               selecteditem_callback={DropdownCallback_EstateGroup}
               options={options_estategroup}
               item={'estateGroupName'}
@@ -489,7 +503,7 @@ const FilterMap = ({navigation}) => {
             <ModalDropdown
               data={Estate}
               disabled={true}
-              placeholder={'Select Estate'}
+              placeholder={'No Data'}
               selecteditem_callback={DropdownCallback_Estate}
               options={options_estate}
               item={'estateName'}
@@ -528,7 +542,7 @@ const FilterMap = ({navigation}) => {
             <ModalDropdown
               data={Afdeling}
               disabled={true}
-              placeholder={'Select Afdeling'}
+              placeholder={'No Data'}
               selecteditem_callback={DropdownCallback_Afdeling}
               options={options_afdeling}
               item={'afdelingName'}

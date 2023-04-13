@@ -11,8 +11,10 @@ import {gStyle, route, colors} from '../../constants';
 import styles from './styles/HomeStyles';
 
 import {API_URL} from '../../helper/helper';
+import {useDispatch} from 'react-redux';
 
 import SQLite from 'react-native-sqlite-storage';
+import {DownloadDropdownLabelAction} from '../../redux/actions/download_dropdown.action';
 
 const Home = ({navigation}) => {
   const theme = 'light';
@@ -23,6 +25,8 @@ const Home = ({navigation}) => {
   const [VerificationImage, setVerificationImage] = useState();
   const [TreeData, setTreeData] = useState(false);
   const [netInfo, setNetInfo] = useState(false);
+
+  const dispatch = useDispatch();
 
   useFocusEffect(
     React.useCallback(() => {
@@ -75,8 +79,8 @@ const Home = ({navigation}) => {
               const row = results.rows.item(i);
               const jsonObject = {
                 predictionId: row.predictionId,
-                // userId: row.userId,
-                userId: 1,
+                userId: row.userId,
+                // userId: 1,
                 datetime: row.datetime,
                 status: row.status,
                 remarks: row.remarks,
@@ -103,7 +107,6 @@ const Home = ({navigation}) => {
 
               tx.executeSql(
                 'SELECT DISTINCT v.verificationImageId, l.treeId, l.blockId AS blockId, l.predictionId, r.verificationId, v.uploadPath AS uploadPath, v.filename AS filename, v.uploadDate AS uploadDate FROM MDB_trees l LEFT JOIN MDB_manual_verification r ON l.predictionId = r.predictionId LEFT JOIN MDB_verification_image v ON v.verificationId = r.verificationId where v.verificationId = ?',
-
                 [row.verificationId],
                 (tx, results) => {
                   let tempArray3 = [];
@@ -112,7 +115,7 @@ const Home = ({navigation}) => {
                     const jsonObject3 = {
                       userId: childRow.userId,
                       filename: childRow.filename,
-                      uploadPath: `D:/multispectral-file/verification_image/${childRow.blockId}/${childRow.filename}`,
+                      uploadPath: `D:/multispectral-file/verification_image/${childRow.filename}`,
                       uploadDate: childRow.uploadDate,
                     };
                     tempArray3.push(jsonObject3);
@@ -212,11 +215,12 @@ const Home = ({navigation}) => {
         );
       });
     }
+    dispatch(DownloadDropdownLabelAction('', '', '', '', ''));
   };
 
   const SendData = async PostData => {
     try {
-      await fetch(`${API_URL}/mobile/sync`, {
+      await fetch(`${API_URL}/api/mobile/sync`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -280,7 +284,7 @@ const Home = ({navigation}) => {
               fontWeight: '500',
               color: '#FCFCFC',
             }}>
-            Sinkronisasi Data
+            Upload Data
           </Text>
         </TouchableOpacity>
         <TouchableOpacity

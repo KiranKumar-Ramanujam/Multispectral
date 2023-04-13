@@ -15,7 +15,11 @@ import {useFocusEffect} from '@react-navigation/native';
 import {heightPercentageToDP as hp} from 'react-native-responsive-screen';
 import RNFS from 'react-native-fs';
 
+import {DownloadDropdownLabelAction} from '../../../redux/actions/download_dropdown.action';
+
 import {NetworkUtils} from '../../../utils';
+
+import {useSelector, useDispatch} from 'react-redux';
 
 import SQLite from 'react-native-sqlite-storage';
 
@@ -42,13 +46,24 @@ const DownloadNewDataBlock = ({navigation}) => {
   const [predicted_estate, setpredicted_estate] = useState([]);
   const [predicted_afdeling, setpredicted_afdeling] = useState([]);
   const [predicted_block, setpredicted_block] = useState([]);
-  const [predicted_capturedate, setpredicted_capturedate] = useState([]);
 
-  const [selected_region, setSelectedRegion] = useState('');
-  const [selected_estate_group, setSelectedEstateGroup] = useState('');
-  const [selected_estate, setSelectedEstate] = useState('');
-  const [selected_afdeling, setSelectedAfdeling] = useState('');
-  const [selected, setSelected] = useState([]);
+  const dispatch = useDispatch();
+
+  const {
+    download_region,
+    download_estate_group,
+    download_estate,
+    download_afdeling,
+    download_block,
+  } = useSelector(state => state.download_dropdown_reducer);
+
+  const [selected_region, setSelectedRegion] = useState(download_region);
+  const [selected_estate_group, setSelectedEstateGroup] = useState(
+    download_estate_group,
+  );
+  const [selected_estate, setSelectedEstate] = useState(download_estate);
+  const [selected_afdeling, setSelectedAfdeling] = useState(download_afdeling);
+  const [selected, setSelected] = useState(download_block);
   const [value, setValue] = useState([]);
 
   var Trees = '';
@@ -94,7 +109,6 @@ const DownloadNewDataBlock = ({navigation}) => {
       createTable();
       getData();
       getPredictedData();
-      setSelected(null);
       setInterval(async () => {
         let NetworkInfo = JSON.parse(await NetworkUtils.isNetworkAvailable());
         setNetInfo(NetworkInfo);
@@ -107,7 +121,7 @@ const DownloadNewDataBlock = ({navigation}) => {
       tx.executeSql(
         'CREATE TABLE IF NOT EXISTS ' +
           'MDB_trees ' +
-          '(treeId INTEGER, blockId INTEGER, blockName TEXT, latitude INTEGER, longitude INTEGER, yearOfPlanting INTEGER,  predictionId INTEGER, prediction TEXT, droneImageId INTEGER, verified BOOLEAN, compressedImageId INTEGER, compressedImagePath TEXT, nw_latitude TEXT, nw_logitude TEXT, se_latitude TEXT, se_longitude TEXT, regionId INTEGER, regionName TEXT, estateGroupId INTEGER, estateGroupName TEXT, estateId INTEGER, estateName TEXT, afdelingId INTEGER, afdelingName TEXT, validated_verificationId INTEGER, validated_status TEXT, createdAt TIMESTAMP, updatedAt TIMESTAMP);',
+          '(treeId INTEGER, blockId INTEGER, blockName TEXT, latitude INTEGER, longitude INTEGER, yearOfPlanting INTEGER,  predictionId INTEGER, prediction TEXT, droneImageId INTEGER, verified BOOLEAN, compressedImageId INTEGER, compressedImagePath TEXT, nw_latitude TEXT, nw_logitude TEXT, se_latitude TEXT, se_longitude TEXT, regionId INTEGER, regionName TEXT, estateGroupId INTEGER, estateGroupName TEXT, estateId INTEGER, estateName TEXT, afdelingId INTEGER, afdelingName TEXT, validated_verificationId INTEGER, validated_status TEXT, validated_pestDiseaseId INTEGER, validated_remarks TEXT, createdAt TIMESTAMP, updatedAt TIMESTAMP);',
       );
       tx.executeSql(
         'CREATE TABLE IF NOT EXISTS ' +
@@ -250,7 +264,16 @@ const DownloadNewDataBlock = ({navigation}) => {
             const jsonRes = await result.json();
             const predicted_block = jsonRes.data;
             setpredicted_block(predicted_block);
-            // }
+            if (download_block != null && download_block != '') {
+              const newArray = predicted_block.filter(item =>
+                download_block.includes(item.id),
+              );
+
+              const newArray2 = newArray.map(item => {
+                return item.name;
+              });
+              setValue(newArray2);
+            }
           } catch (err) {
             console.log(err);
           }
@@ -338,7 +361,8 @@ const DownloadNewDataBlock = ({navigation}) => {
                         db.transaction(
                           tx => {
                             tx.executeSql(
-                              'INSERT INTO MDB_trees ( treeId, blockId, blockName, latitude, longitude, yearOfPlanting,  predictionId, prediction, droneImageId, verified, compressedImageId, compressedImagePath, nw_latitude, nw_logitude, se_latitude, se_longitude, regionId, regionName, estateGroupId, estateGroupName, estateId, estateName, afdelingId, afdelingName, validated_verificationId, validated_status, createdAt, updatedAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                              // 'INSERT INTO MDB_trees ( treeId, blockId, blockName, latitude, longitude, yearOfPlanting,  predictionId, prediction, droneImageId, verified, compressedImageId, compressedImagePath, nw_latitude, nw_logitude, se_latitude, se_longitude, regionId, regionName, estateGroupId, estateGroupName, estateId, estateName, afdelingId, afdelingName, validated_verificationId, validated_status, createdAt, updatedAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                              'INSERT INTO MDB_trees ( treeId, blockId, blockName, latitude, longitude, yearOfPlanting,  predictionId, prediction, droneImageId, verified, compressedImageId, compressedImagePath, nw_latitude, nw_logitude, se_latitude, se_longitude, regionId, regionName, estateGroupId, estateGroupName, estateId, estateName, afdelingId, afdelingName, validated_verificationId, validated_status, validated_remarks, validated_pestDiseaseId, createdAt, updatedAt) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
                               [
                                 Trees[i].treeId,
                                 Trees[i].blockId,
@@ -366,6 +390,8 @@ const DownloadNewDataBlock = ({navigation}) => {
                                 Trees[i].afdelingName,
                                 Trees[i].verificationId,
                                 Trees[i].status,
+                                Trees[i].remarks,
+                                Trees[i].pestDiseaseId,
                                 date,
                                 date,
                               ],
@@ -502,6 +528,16 @@ const DownloadNewDataBlock = ({navigation}) => {
           });
         }
       }
+
+      dispatch(
+        DownloadDropdownLabelAction(
+          selected_region,
+          selected_estate_group,
+          selected_estate,
+          selected_afdeling,
+          selected,
+        ),
+      );
     } catch (error) {
       console.log(error);
     }
@@ -829,6 +865,7 @@ const DownloadNewDataBlock = ({navigation}) => {
               selectedTextStyle={styles.selectedTextStyle}
               inputSearchStyle={styles.inputSearchStyle}
               iconStyle={styles.iconStyle}
+              disable={download_region}
               labelField="name"
               valueField="id"
               data={predicted_region}
@@ -862,7 +899,7 @@ const DownloadNewDataBlock = ({navigation}) => {
               onChange={value => DropdownCallback_Estate_Group(value)}
               search
               searchPlaceholder="Search..."
-              disable={!selected_region}
+              disable={!selected_region || download_estate_group}
               activeColor={'#AECA98'}
               itemTextStyle={styles.itemTextStyle}
             />
@@ -888,7 +925,7 @@ const DownloadNewDataBlock = ({navigation}) => {
               onChange={value => DropdownCallback_Estate(value)}
               search
               searchPlaceholder="Search..."
-              disable={!selected_estate_group}
+              disable={!selected_estate_group || download_estate}
               activeColor={'#AECA98'}
               itemTextStyle={styles.itemTextStyle}
             />
@@ -914,7 +951,7 @@ const DownloadNewDataBlock = ({navigation}) => {
               onChange={value => DropdownCallback_Afdeling(value)}
               search
               searchPlaceholder="Search..."
-              disable={!selected_estate}
+              disable={!selected_estate || download_afdeling}
               activeColor={'#AECA98'}
               itemTextStyle={styles.itemTextStyle}
             />
@@ -939,11 +976,8 @@ const DownloadNewDataBlock = ({navigation}) => {
               value={selected}
               maxSelect={3}
               placeholder={
-                selected != null &&
-                selected != '' &&
-                value != null &&
-                value != ''
-                  ? value + ','
+                selected != null && selected != ''
+                  ? `${selected.length} selected`
                   : 'Select Blok'
               }
               search
@@ -952,7 +986,7 @@ const DownloadNewDataBlock = ({navigation}) => {
                 setSelected(item);
                 onSelectedItemsChange(item);
               }}
-              disable={!selected_afdeling}
+              disable={!selected_afdeling || download_block}
               renderItem={renderDataItem}
               renderSelectedItem={(item, unSelect) => (
                 <View style={styles.date_dropdown_bubble}>
@@ -986,10 +1020,16 @@ const DownloadNewDataBlock = ({navigation}) => {
             justifyContent: 'center',
             borderRadius: 8,
             marginBottom: '3%',
-            backgroundColor: downloadEnabled ? colors.greenColor : '#C0C0C0',
-            borderColor: downloadEnabled ? colors.greenColor : '#C0C0C0',
+            backgroundColor:
+              downloadEnabled && !download_block
+                ? colors.greenColor
+                : '#C0C0C0',
+            borderColor:
+              downloadEnabled && !download_block
+                ? colors.greenColor
+                : '#C0C0C0',
           }}
-          disabled={downloadEnabled ? false : true}
+          disabled={downloadEnabled && !download_block ? false : true}
           onPress={() => {
             DownloadOffline();
             setmodalVisible(true);

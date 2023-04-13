@@ -87,15 +87,32 @@ const ValidateGroundTruth = ({navigation, route}) => {
   }
   var switchcolor = '';
 
-  const [userId, setuserId] = useState('');
+  const [userId, setuserId] = useState();
   const [verificationId, setverificationId] = useState('');
 
   useEffect(() => {
     try {
-      AsyncStorage.getItem('loginUserId').then(loginUserId => {
-        if (loginUserId && loginUserId !== null && loginUserId !== undefined) {
-          const temp = parseInt(loginUserId);
-          setuserId(temp);
+      // AsyncStorage.getItem('loginUserId').then(loginUserId => {
+      //   if (loginUserId && loginUserId !== null && loginUserId !== undefined) {
+      //     const temp = parseInt(loginUserId);
+      //     setuserId(temp);
+      //   }
+      // });
+      AsyncStorage.getItem('loginUserName').then(loginUser => {
+        if (loginUser && loginUser !== null && loginUser !== undefined) {
+          db.transaction(tx => {
+            tx.executeSql(
+              'SELECT DISTINCT(userName), userId FROM MDB_User WHERE userName = ?',
+              [loginUser],
+              (tx, results) => {
+                var len = results.rows.length;
+                if (len > 0) {
+                  for (let i = 0; i < results.rows.length; ++i)
+                    setuserId(results.rows.item(i)['userId']);
+                }
+              },
+            );
+          });
         }
       });
     } catch (error) {
@@ -120,6 +137,17 @@ const ValidateGroundTruth = ({navigation, route}) => {
     try {
       getmanual_verification();
       setSelected(null);
+      if (
+        selectedTreeData.validated_remarks != null &&
+        selectedTreeData.validated_remarks != '' &&
+        (selectedTreeData.remarks == null || selectedTreeData.remarks == '')
+      ) {
+        setAddnote(selectedTreeData.validated_remarks);
+        setSwitchValue(true);
+      }
+      if (Addnote != null && Addnote != '') {
+        setSwitchValue(true);
+      }
     } catch (error) {
       console.log(error);
     }
@@ -153,51 +181,115 @@ const ValidateGroundTruth = ({navigation, route}) => {
           },
         );
 
-        tx.executeSql(
-          'SELECT DISTINCT l.treeId, l.predictionId, r.verificationId, p.pestdiseaseId AS pestdiseaseId, p.pestdiseaseName FROM MDB_trees l LEFT JOIN MDB_manual_verification r ON l.predictionId = r.predictionId LEFT JOIN MDB_manualverification_pest_disease p ON p.verificationId = r.verificationId where l.treeId =? AND p.pestDiseaseId is NOT NULL GROUP BY p.pestDiseaseId',
-          [selectedTreeData.treeId],
-          (tx, results) => {
-            var temp = [];
-            var temp2 = [];
-            var len = results.rows.length;
-            if (len > 0) {
-              for (let i = 0; i < results.rows.length; ++i)
-                temp.push(results.rows.item(i)['pestdiseaseId']);
-              setSelected(temp);
-              setSelected_exist(temp);
+        if (
+          selectedTreeData.validated_pestDiseaseId != null &&
+          selectedTreeData.validated_pestDiseaseId != '' &&
+          (selectedTreeData.pestDiseaseId == null ||
+            selectedTreeData.pestDiseaseId == '')
+        ) {
+          tx.executeSql(
+            // 'SELECT DISTINCT l.treeId, l.predictionId, r.verificationId, p.pestdiseaseId AS pestdiseaseId, p.pestdiseaseName FROM MDB_trees l LEFT JOIN MDB_manual_verification r ON l.predictionId = r.predictionId LEFT JOIN MDB_manualverification_pest_disease p ON p.verificationId = r.verificationId where l.treeId =? AND p.pestDiseaseId is NOT NULL GROUP BY p.pestDiseaseId',
+            `SELECT DISTINCT treeId, validated_pestDiseaseId AS pestdiseaseId FROM MDB_trees  where treeId =? AND validated_pestDiseaseId is NOT NULL GROUP BY validated_pestDiseaseId`,
+            [selectedTreeData.treeId],
+            (tx, results) => {
+              var temp = [];
+              var temp2 = [];
+              var len = results.rows.length;
+              if (len > 0) {
+                for (let i = 0; i < results.rows.length; ++i)
+                  temp.push(results.rows.item(i)['pestdiseaseId']);
+                setSelected(temp);
+                setSelected_exist(temp);
 
-              for (let i = 0; i < results.rows.length; ++i)
-                if (results.rows.item(i)['pestdiseaseId'] != null) {
-                  temp2.push(results.rows.item(i)['verificationId']);
-                }
-              setSelected_delete(temp2);
-              tx.executeSql(
-                'SELECT pestDiseaseId AS id, pestDiseaseName AS name FROM MDB_pest_disease',
-                [],
-                (tx, results) => {
-                  var temp3 = [];
-                  var len = results.rows.length;
-                  if (len > 0) {
-                    for (let i = 0; i < results.rows.length; ++i)
-                      temp3.push(results.rows.item(i));
-                    if (temp3 != null && temp3 != '') {
-                      const newArray = temp3.filter(item =>
-                        temp.includes(item.id),
-                      );
-                      const newArray2 = newArray.map(item => {
-                        return item.name;
-                      });
-                      setValue(newArray2);
-                      setvalue_exist(newArray2);
+                for (let i = 0; i < results.rows.length; ++i)
+                  // if (results.rows.item(i)['pestdiseaseId'] != null) {
+                  //   temp2.push(results.rows.item(i)['verificationId']);
+                  // }
+                  // setSelected_delete(temp2);
+                  tx.executeSql(
+                    'SELECT pestDiseaseId AS id, pestDiseaseName AS name FROM MDB_pest_disease',
+                    [],
+                    (tx, results) => {
+                      var temp3 = [];
+                      var len = results.rows.length;
+                      if (len > 0) {
+                        for (let i = 0; i < results.rows.length; ++i)
+                          temp3.push(results.rows.item(i));
+                        if (temp3 != null && temp3 != '') {
+                          const newArray = temp3.filter(item =>
+                            temp.includes(item.id),
+                          );
+                          const newArray2 = newArray.map(item => {
+                            return item.name;
+                          });
+                          setValue(newArray2);
+                          setvalue_exist(newArray2);
+                        }
+                      }
+                    },
+                  );
+              } else {
+                setSelected(temp);
+              }
+            },
+          );
+        } else if (
+          selectedTreeData.validated_pestDiseaseId == null ||
+          selectedTreeData.validated_pestDiseaseId == '' ||
+          (selectedTreeData.validated_pestDiseaseId != null &&
+            selectedTreeData.pestDiseaseId != null &&
+            selectedTreeData.pestDiseaseId != '')
+        ) {
+          tx.executeSql(
+            'SELECT DISTINCT l.treeId, l.predictionId, r.verificationId, p.pestdiseaseId AS pestdiseaseId, p.pestdiseaseName FROM MDB_trees l LEFT JOIN MDB_manual_verification r ON l.predictionId = r.predictionId LEFT JOIN MDB_manualverification_pest_disease p ON p.verificationId = r.verificationId where l.treeId =? AND p.pestDiseaseId is NOT NULL GROUP BY p.pestDiseaseId',
+            [selectedTreeData.treeId],
+            (tx, results) => {
+              var temp = [];
+              var temp2 = [];
+              var len = results.rows.length;
+              if (selectedTreeData.status != 'Healthy') {
+                if (len > 0) {
+                  for (let i = 0; i < results.rows.length; ++i)
+                    temp.push(results.rows.item(i)['pestdiseaseId']);
+                  setSelected(temp);
+                  setSelected_exist(temp);
+
+                  for (let i = 0; i < results.rows.length; ++i)
+                    if (results.rows.item(i)['pestdiseaseId'] != null) {
+                      temp2.push(results.rows.item(i)['verificationId']);
                     }
-                  }
-                },
-              );
-            } else {
-              setSelected(temp);
-            }
-          },
-        );
+                  setSelected_delete(temp2);
+                  tx.executeSql(
+                    'SELECT pestDiseaseId AS id, pestDiseaseName AS name FROM MDB_pest_disease',
+                    [],
+                    (tx, results) => {
+                      var temp3 = [];
+                      var len = results.rows.length;
+                      if (len > 0) {
+                        for (let i = 0; i < results.rows.length; ++i)
+                          temp3.push(results.rows.item(i));
+                        if (temp3 != null && temp3 != '') {
+                          const newArray = temp3.filter(item =>
+                            temp.includes(item.id),
+                          );
+                          const newArray2 = newArray.map(item => {
+                            return item.name;
+                          });
+                          setValue(newArray2);
+                          setvalue_exist(newArray2);
+                        }
+                      }
+                    },
+                  );
+                } else {
+                  setSelected(temp);
+                }
+              } else {
+                setSelected(temp);
+              }
+            },
+          );
+        }
       });
     } catch (error) {
       console.log(error);
@@ -215,7 +307,10 @@ const ValidateGroundTruth = ({navigation, route}) => {
   } else {
     if (status == null) {
       if (selectedTreeData.prediction == 'healthy') {
-        if (selectedTreeData.status == 'Unhealthy') {
+        if (
+          selectedTreeData.status == 'Unhealthy' ||
+          selectedTreeData.validated_status == 'Unhealthy'
+        ) {
           initialswitch = 1;
           switchcolor = colors.switch_iconred;
         } else {
@@ -225,7 +320,10 @@ const ValidateGroundTruth = ({navigation, route}) => {
       }
 
       if (selectedTreeData.prediction == 'unhealthy') {
-        if (selectedTreeData.status == 'Healthy') {
+        if (
+          selectedTreeData.status == 'Healthy' ||
+          selectedTreeData.validated_status == 'Healthy'
+        ) {
           initialswitch = 0;
           switchcolor = colors.switch_icongreen;
         } else {
@@ -434,8 +532,13 @@ const ValidateGroundTruth = ({navigation, route}) => {
         try {
           await db.transaction(async tx => {
             var date = moment().format('YYYY/MM/DD hh:mm:ss a');
-
+            let temp_addnote = '';
             if (status != '' && status != null) {
+              if (status == 'Healthy') {
+                temp_addnote = '';
+              } else {
+                temp_addnote = Addnote;
+              }
               await tx.executeSql(
                 'INSERT INTO MDB_manual_verification (predictionId, userId, datetime, status, remarks, user_latitude, user_longitude, accuracy, createdAt, updatedAt) VALUES (?,?,?,?,?,?,?,?,?,?)',
                 [
@@ -443,6 +546,28 @@ const ValidateGroundTruth = ({navigation, route}) => {
                   userId,
                   date,
                   status,
+                  temp_addnote,
+                  currentLatitude,
+                  currentLongitude,
+                  accuracy,
+                  date,
+                  date,
+                ],
+              );
+            } else if (status == undefined) {
+              let temp_status = '';
+              if (selectedTreeData.prediction == 'healthy') {
+                temp_status = 'Healthy';
+              } else {
+                temp_status = 'Unhealthy';
+              }
+              await tx.executeSql(
+                'INSERT INTO MDB_manual_verification (predictionId, userId, datetime, status, remarks, user_latitude, user_longitude, accuracy, createdAt, updatedAt) VALUES (?,?,?,?,?,?,?,?,?,?)',
+                [
+                  selectedTreeData.predictionId,
+                  userId,
+                  date,
+                  temp_status,
                   Addnote,
                   currentLatitude,
                   currentLongitude,
@@ -589,7 +714,8 @@ const ValidateGroundTruth = ({navigation, route}) => {
             <View style={styles.popinnerContainer}>
               <View style={[styles.container, styles.poparrange_left]}>
                 {selectedTreeData.status == '' ||
-                selectedTreeData.status == null ? (
+                (selectedTreeData.status == null &&
+                  selectedTreeData.validated_status == null) ? (
                   selectedTreeData.prediction == 'healthy' ? (
                     <Svg_Filter
                       viewBox={'0 0 68 68'}
@@ -747,11 +873,8 @@ const ValidateGroundTruth = ({navigation, route}) => {
                     valueField="id"
                     value={selected}
                     placeholder={
-                      selected != null &&
-                      selected != '' &&
-                      value != null &&
-                      value != ''
-                        ? value + ','
+                      selected != null && selected != ''
+                        ? `${selected.length} selected`
                         : 'Select Reason'
                     }
                     search
@@ -1086,24 +1209,89 @@ const ValidateGroundTruth = ({navigation, route}) => {
             <View style={styles.container}>
               <View style={{paddingVertical: 46 * ratio}}></View>
 
-              <Pressable
+              {/* <Pressable
                 style={[styles.button, styles.buttonClose]}
                 onPress={() => {
                   updatestatus();
                   navigation.navigate(Route.MAP, {});
                 }}>
                 <Text style={styles.buttontext}>Validate Ground Truth</Text>
+              </Pressable> */}
+
+              <Pressable
+                // style={[styles.button, styles.buttonClose]}
+                style={{
+                  borderRadius: 5 * ratio,
+                  padding: 10 * ratio,
+                  top: 180 * ratio,
+                  width: '100%',
+                  height: 44 * ratio,
+                  backgroundColor:
+                    (Addnote != null && Addnote != '') ||
+                    (selected != null && selected != '') ||
+                    (status == undefined &&
+                      selectedTreeData.prediction == 'healthy') ||
+                    status == 'Healthy'
+                      ? '#33a02c'
+                      : 'gray',
+                }}
+                onPress={() => {
+                  updatestatus();
+                  navigation.navigate(Route.MAP, {});
+                }}
+                disabled={
+                  (Addnote != null && Addnote != '') ||
+                  (selected != null && selected != '') ||
+                  (status == undefined &&
+                    selectedTreeData.prediction == 'healthy') ||
+                  status == 'Healthy'
+                    ? false
+                    : true
+                }>
+                <Text style={styles.buttontext}>Save</Text>
               </Pressable>
             </View>
           ) : (
             <View style={styles.container}>
-              <Pressable
+              {/* <Pressable
                 style={[styles.button, styles.buttonClose]}
                 onPress={() => {
                   updatestatus();
                   navigation.navigate(Route.MAP, {});
                 }}>
                 <Text style={styles.buttontext}>Validate Ground Truth</Text>
+              </Pressable> */}
+              <Pressable
+                // style={[styles.button, styles.buttonClose]}
+                style={{
+                  borderRadius: 5 * ratio,
+                  padding: 10 * ratio,
+                  top: 180 * ratio,
+                  width: '100%',
+                  height: 44 * ratio,
+                  backgroundColor:
+                    (Addnote != null && Addnote != '') ||
+                    (selected != null && selected != '') ||
+                    (status == undefined &&
+                      selectedTreeData.prediction == 'healthy') ||
+                    status == 'Healthy'
+                      ? '#33a02c'
+                      : 'gray',
+                }}
+                onPress={() => {
+                  updatestatus();
+                  navigation.navigate(Route.MAP, {});
+                }}
+                disabled={
+                  (Addnote != null && Addnote != '') ||
+                  (selected != null && selected != '') ||
+                  (status == undefined &&
+                    selectedTreeData.prediction == 'healthy') ||
+                  status == 'Healthy'
+                    ? false
+                    : true
+                }>
+                <Text style={styles.buttontext}>Save</Text>
               </Pressable>
             </View>
           )}

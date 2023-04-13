@@ -18,7 +18,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   titletext: {
-    fontSize: 30 * ratio,
+    fontSize: 22 * ratio,
     textAlign: 'center',
     alignItems: 'center',
     color: '#1E345D',
@@ -60,6 +60,12 @@ const styles = StyleSheet.create({
     color: 'red',
     fontSize: 16 * ratio,
     marginLeft: 10 * ratio,
+  },
+  invalidmessage: {
+    color: 'red',
+    fontSize: 16 * ratio,
+    marginLeft: 10 * ratio,
+    top: 8 * ratio,
   },
   loginview: {
     width: 350 * ratio,
