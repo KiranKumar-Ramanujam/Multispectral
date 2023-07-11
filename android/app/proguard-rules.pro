@@ -41,9 +41,6 @@
 
 # Sample ProGuard rules for some commonly used packages:
 
-# React Native Async Storage
--keep class com.reactnativecommunity.asyncstorage.** { *; }
-
 # React Native Geolocation
 -keep class com.reactnativecommunity.geolocation.** { *; }
 
@@ -90,6 +87,7 @@
 -keep class net.sqlcipher.** { *; }
 
 -keep class okhttp3.internal.** { *; }
+
 
 -keep class b.** { *; }
 -keep class g.a.** { *; }
