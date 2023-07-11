@@ -122,14 +122,6 @@ const ProfileScreen = ({navigation}) => {
             <Text style={styles.logoutText}>Log Out</Text>
           </View>
         </TouchableOpacity>
-        <ScrollView style={{container: 1}}>
-          <Text
-            style={{
-              alignSelf: 'center',
-              fontSize: 20,
-              color: '#74777A',
-            }}>{`Token : ${token} \n\n UserId : ${userId}`}</Text>
-        </ScrollView>
       </View>
       <View style={styles.versionStyle}>
         <Text
